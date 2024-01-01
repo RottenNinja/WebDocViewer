@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Browser</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+
+    <style>
+        body {
+            display: flex;
+            font-family: Arial, sans-serif;
+        }
+        #topbar {
+            display: block;
+            position: absolute;
+            right: 20px;
+            left: 20px;
+            border-bottom: solid 1px;
+            padding: 0 0 5px 0;
+            margin: 0;
+        }
+        #navigation {
+            width: 210px;
+            min-width: 210px;
+            border-right: 1px solid #ccc;
+            padding: 10px;
+            min-height: 600px;
+            margin-top: 70px;
+        }
+        #content {
+            flex-grow: 1;
+            padding: 0 20px 20px 20px;
+            margin-top: 50px;
+        }
+
+    </style>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #1e1e1e; /* Dark background */
+            color: #c7c7c7; /* Light grey text */
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5 {
+            color: #d1b3ff; /* Light purple for headings */
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 2em; /* Larger size for h1 */
+        }
+
+        h2 {
+            font-size: 1.75em;
+        }
+
+        h3 {
+            font-size: 1.5em;
+        }
+
+        h4 {
+            font-size: 1.25em;
+        }
+
+        h5 {
+            font-size: 1em;
+        }
+
+        a {
+            color: #89c9b8; /* Soft green for links */
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #a0d9cc; /* Lighter green for hover state */
+        }
+
+
+        pre {
+            background-color: #262626;
+            border: 1px solid;
+        }
+        pre code {
+            display: block;
+            background: none;
+            white-space: pre;
+            max-width: 100%;
+            min-width: 100px;
+            padding: 10px;
+        }
+        </style>
+    <style>
+        .folder-structure {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        .folder, .file {
+            padding-left: 20px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .folder::before, .file::before {
+            content: '';
+            position: absolute;
+            left: 0;
+        }
+
+        .folder::before {
+            content: '\f07b'; /* Font Awesome Folder Icon */
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+        }
+
+        .file::before {
+            content: '\f15b'; /* Font Awesome File Icon */
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 400;
+        }
+
+        .folder-contents {
+            display: none;
+        }
+
+        .folder-contents.open {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<div id="topbar"><h1 style="color: #dddad7;margin: 0;display: flex;align-items:center;"><img id="logo" style="width: 60px; margin: 0 15px 0 15px;" alt="Logo"/> <span id="title"></span></h1></div>
+<div id="navigation">
+    <div id="nav-content">
+    <!-- Navigation content will be loaded here -->
+    </div>
+</div>
+<div id="content">
+    <!-- Content from AJAX call will be displayed here -->
+</div>
+<script src="marked.min.js"></script>
+<script>
+    window.currentDir = "";
+    const renderer = {
+        link(href, title, text) {
+            let a = document.createElement('a');
+            a.href = href;
+            a.title = title??"";
+            a.text = text;
+            let url = new URL(a);
+            if(url.pathname[0]==="/") {
+                a.href = "#"
+                if (href[0] === "/")
+                    a.setAttribute("onClick", "return loadContent('"+href+"')");
+                else
+                    a.setAttribute("onClick", "return loadContent('"+window.currentDir+href+"')");
+            }
+            return a.outerHTML
+        },
+        image(href, title, text) {
+            let a = document.createElement('img');
+            a.src = href;
+            a.title = title;
+            a.alt = text;
+            if (href.indexOf('http://') !== 0 && href.indexOf('https://') !== 0) {
+                a.src = window.currentDir + href
+            }
+            return a.outerHTML
+        }
+    };
+    marked.use({ renderer });
+</script>
+<script>
+    var navigation = [];
+
+    function loadContent(item) {
+        fetch('/' + item)
+            .then(response => response.text())
+            .then(data => {
+                window.currentDir = item.match(/.*\//)??""
+                document.getElementById('content').innerHTML = marked.parse(data);
+            })
+            .catch(error => console.error('Error:', error));
+        return false;
+    }
+    function drawNavFolder(folderNode){
+        let nodes = ""
+        let order = folderNode.extra_config?.order?.rest || "ASC"
+        let orderedList = [];
+        if(order !== "ASC")
+            orderedList = folderNode.children?.sort((a,b) => b.name.localeCompare(a.name))
+        else
+            orderedList = folderNode.children?.sort((a,b) => a.name.localeCompare(b.name))
+
+
+
+        const firstOverride = folderNode.extra_config?.order?.first || []
+        const lastOverride = folderNode.extra_config?.order?.last || []
+
+        const filteredList = orderedList.filter(
+            item => !firstOverride.includes(item.name) && !lastOverride.includes(item.name)
+        );
+
+        const mergedList = [
+            ...firstOverride.map(name => ( orderedList.find(item => item.name === name))),
+            ...filteredList,
+            ...lastOverride.map(name => ( orderedList.find(item => item.name === name))),
+        ];
+
+        mergedList.forEach( child => {
+            if (child.isFolder === true){
+                nodes += '<div class="folder"> <div onclick="toggleFolder(this)" >'+child.name+'</div><div class="folder-contents">' + drawNavFolder(child)+'</div></div>';
+            }else{
+                nodes += '<div class="file" onclick="loadContent(\''+child.path+'\')">'+child.name.slice(0,-3)+'</div>'
+            }
+        })
+        return nodes;
+    }
+    function toggleFolder(element) {
+        const contents = element.nextElementSibling;
+        contents.classList.toggle('open');
+    }
+    async function loadNavigation() {
+        const navigationDiv = document.getElementById('nav-content');
+        const response = await fetch('/ls');
+        let data = await response.json()
+        document.getElementById("title").innerHTML = data.config.title;
+        document.getElementById("logo").src = data.config.logoUri;
+        navigationDiv.innerHTML = '<div class="folder-structure">'+drawNavFolder(data.docs)+'</div>';
+    }
+    // JavaScript for AJAX call and updating content
+    document.addEventListener('DOMContentLoaded', async function() {
+        await loadNavigation();
+        const homePage = navigation.find((x) => x.name === "Home.md")
+        if(homePage){
+            loadContent(homePage.path);
+        }
+    });
+</script>
+</body>
+</html>

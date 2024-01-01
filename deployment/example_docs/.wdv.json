@@ -1,0 +1,7 @@
+{
+  "order": {
+    "first": ["Home.md","About.md"],
+    "last": ["FAQ.md"],
+    "rest": "ASC"
+  }
+}

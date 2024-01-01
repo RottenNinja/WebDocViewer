@@ -1,0 +1,16 @@
+version: "3.2"
+services:
+
+  webdocs:
+    container_name: webdocs
+    image: hgithub/webdocviewer:latest
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./example_docs:/www/docs
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 60  --include-restarting --include-stopped --revive-stopped --cleanup webdocs
