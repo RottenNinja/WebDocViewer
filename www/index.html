@@ -173,8 +173,6 @@
     marked.use({ renderer });
 </script>
 <script>
-    var navigation = [];
-
     function loadContent(item) {
         fetch('/' + item)
             .then(response => response.text())
@@ -229,11 +227,12 @@
         document.getElementById("title").innerHTML = data.config.title;
         document.getElementById("logo").src = data.config.logoUri;
         navigationDiv.innerHTML = '<div class="folder-structure">'+drawNavFolder(data.docs)+'</div>';
+        return data;
     }
     // JavaScript for AJAX call and updating content
     document.addEventListener('DOMContentLoaded', async function() {
-        await loadNavigation();
-        const homePage = navigation.find((x) => x.name === "Home.md")
+        let data = await loadNavigation();
+        const homePage = data.docs?.children?.find((x) => x.name === "Home.md")
         if(homePage){
             loadContent(homePage.path);
         }
