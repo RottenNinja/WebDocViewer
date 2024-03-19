@@ -2,6 +2,8 @@
 
 Web based markdown viewer for documentation
 
+![image](assets/screenshot.png)
+
 ## Setup
 Just add any volume containing mark down files to the /www/docs of the container and it will display them on port 8080
 
@@ -19,7 +21,7 @@ services:
     volumes:
       - ./example_docs:/www/docs
 
-  #Optional
+  #Optional to allow auto updating
   watchtower:
     image: containrrr/watchtower
     volumes:
